@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Five Fallen Thrones</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="640" height="480"></canvas>
+        <div id="gameInfo"></div>
+        <div id="controls">
+            <div class="d-pad">
+                <div id="up" class="d-pad-button"></div>
+                <div id="left" class="d-pad-button"></div>
+                <div id="right" class="d-pad-button"></div>
+                <div id="down" class="d-pad-button"></div>
+            </div>
+            <div class="action-buttons">
+                <div id="attackButton" class="action-button">A</div>
+                <div id="runButton" class="action-button">R</div>
+                <div id="campButton" class="action-button">C</div>
+            </div>
+        </div>
+        <div id="battleTransition"></div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
