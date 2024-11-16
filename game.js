@@ -1373,13 +1373,23 @@ const canvas = document.getElementById('gameCanvas');
             
             // Draw battle UI
             ctx.fillStyle = '#fff';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
             ctx.font = '24px monospace';
             
             // Move HP text up to top of screen
             const topPadding = 30;
             ctx.fillText(`${player.name} HP: ${player.hp}/${player.maxHp}`, 50, topPadding);
-            ctx.fillText(`${currentEnemy.name} - Lv ${currentEnemy.level} HP: ${currentEnemy.hp}`, canvas.width - 300, topPadding);
-            
+            ctx.fillText(`${currentEnemy.name} (${currentEnemy.level}) HP: ${currentEnemy.hp}`, canvas.width - 300, topPadding);
+
+            // Reset shadow for other drawing operations
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+
             // Draw HP bars just below the text
             drawHealthBar(50, topPadding + 10, player.hp, player.maxHp, 200);
             drawHealthBar(canvas.width - 250, topPadding + 10, currentEnemy.hp, currentEnemy.maxHp, 200);
