@@ -292,9 +292,36 @@ const canvas = document.getElementById('gameCanvas');
             }, 500);
         }
 
+        // Add after ENEMY_TYPES array
+        const BATTLE_BACKGROUNDS = {
+            grass: 'assets/images/Medow Battle Background.webp',
+            hills: 'assets/images/Forest background for battle cropped.jpg',
+            desert: 'assets/images/Desert Battle Background.webp',
+        };
+
+        // Load battle background images
+        const battleBackgroundImages = {};
+        for (const [terrain, path] of Object.entries(BATTLE_BACKGROUNDS)) {
+            battleBackgroundImages[terrain] = new Image();
+            battleBackgroundImages[terrain].src = path;
+        }
+
+        // Update the drawBattleScene function
         function drawBattleScene() {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Get the terrain the player is standing on
+            const currentTerrain = getTileAt(player.x, player.y);
+            
+            // Draw the background image
+            const backgroundImg = battleBackgroundImages[currentTerrain];
+            if (backgroundImg && backgroundImg.complete) {
+                ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+            } else {
+                // Fallback to black background if image isn't loaded
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            // Draw characters and UI on top
             ctx.drawImage(sprites.hero.canvas, 100, 300);
             ctx.drawImage(enemySprites[ENEMY_TYPES.indexOf(currentEnemy.name)].canvas, 500, 300);
             
