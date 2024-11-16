@@ -213,6 +213,7 @@ const canvas = document.getElementById('gameCanvas');
             drawMap();
             updateGameInfo();
             setupTouchControls();
+            setupKeyboardControls();
         }
 
         function setupTouchControls() {
@@ -256,6 +257,31 @@ const canvas = document.getElementById('gameCanvas');
             }
             drawMap();
             updateGameInfo();
+        }
+
+        function setupKeyboardControls() {
+            document.addEventListener('keydown', (e) => {
+                switch (e.key) {
+                    case 'ArrowUp': if (!currentEnemy) handleMove('up'); break;
+                    case 'ArrowDown': if (!currentEnemy) handleMove('down'); break;
+                    case 'ArrowLeft': if (!currentEnemy) handleMove('left'); break;
+                    case 'ArrowRight': if (!currentEnemy) handleMove('right'); break;
+                    case 'a':
+                        if (currentEnemy) battle('attack');
+                        break;
+                    case 'r':
+                        if (currentEnemy) battle('run');
+                        break;
+                    case 'c':
+                        if (!currentEnemy) {
+                            player.camp();
+                            drawMap();
+                            updateGameInfo();
+                        }
+                        break;
+                }
+                updateGameInfo();
+            });
         }
 
         init();
