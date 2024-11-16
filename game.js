@@ -28,7 +28,6 @@ const canvas = document.getElementById('gameCanvas');
         const BATTLE_MUSIC = new Audio('assets/audio/Pixelated Battle.mp3');
         BACKGROUND_MUSIC.loop = true;
         BATTLE_MUSIC.loop = true;
-        console.log('Audio source:', BACKGROUND_MUSIC.src);
 
         // Sound Effects
         const SOUNDS = {
@@ -58,9 +57,6 @@ const canvas = document.getElementById('gameCanvas');
         }
 
         function playLevelUpSequence() {
-            console.log('Playing level up sequence');
-            // 1. Immediately stop background music
-            console.log(BACKGROUND_MUSIC);
             BACKGROUND_MUSIC.pause();
             BATTLE_MUSIC.pause();
             BACKGROUND_MUSIC.currentTime = 0;
@@ -267,7 +263,6 @@ const canvas = document.getElementById('gameCanvas');
             }
 
             levelUp() {
-                console.log('Leveling up');
                 this.level++;
                 this.maxHp += 10;
                 this.hp = this.maxHp;
@@ -436,7 +431,7 @@ const canvas = document.getElementById('gameCanvas');
         // Update the drawBattleScene function
         function drawBattleScene() {
             // Get the terrain the player is standing on
-            const currentTerrain = getTileAt(player.x, player.y);
+            const currentTerrain = getTileAt(player.x, player.y - 1);
             
             // Draw the background image
             const backgroundImg = battleBackgroundImages[currentTerrain];
@@ -767,9 +762,6 @@ const canvas = document.getElementById('gameCanvas');
 
         function playSound(soundName) {
             const sound = SOUNDS[soundName];
-            if (soundName === 'LEVEL_UP') {
-                console.log(sound);
-            }
             if (sound) {
                 // Clone and play the sound to allow overlapping
                 const soundClone = sound.cloneNode();
