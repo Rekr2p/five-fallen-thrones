@@ -1378,7 +1378,7 @@ const canvas = document.getElementById('gameCanvas');
             if (action === 'attack') {
                 playSound('ATTACK');
                 const damage = Math.max(1, player.attack - currentEnemy.defense);
-                currentEnemy.hp -= damage;
+                currentEnemy.hp = Math.max(0, currentEnemy.hp - damage); // Prevent negative HP
                 
                 setTimeout(() => {
                     if (currentEnemy) {
@@ -1394,6 +1394,7 @@ const canvas = document.getElementById('gameCanvas');
                             
                             currentEnemy = null;
                             drawMap();
+                            updateGameStats();
                             
                             showGameMessage(`You defeated the ${defeatedEnemyName}! Gained ${goldGained} gold and ${xpGained} XP`);
                             return;
@@ -1402,7 +1403,7 @@ const canvas = document.getElementById('gameCanvas');
                         setTimeout(() => {
                             if (currentEnemy) {
                                 const enemyDamage = Math.max(1, currentEnemy.attack - player.defense);
-                                player.hp -= enemyDamage;
+                                player.hp = Math.max(0, player.hp - enemyDamage); // Prevent negative HP
                                 
                                 setTimeout(() => {
                                     if (currentEnemy) {
@@ -1411,6 +1412,12 @@ const canvas = document.getElementById('gameCanvas');
                                         if (player.hp <= 0) {
                                             showGameMessage('Game Over! You have been defeated.');
                                             currentEnemy = null;
+                                            
+                                            // Add delay before reset
+                                            setTimeout(() => {
+                                                transitionMusic(false);
+                                                init(); // Reset the game
+                                            }, 2000);
                                             return;
                                         }
                                         drawBattleScene();
@@ -1427,6 +1434,7 @@ const canvas = document.getElementById('gameCanvas');
                     currentEnemy = null;
                     transitionMusic(false);
                     drawMap();
+                    updateGameStats();
                     return;
                 }
             }
