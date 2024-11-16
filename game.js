@@ -80,112 +80,980 @@ const canvas = document.getElementById('gameCanvas');
         }
 
         class Sprite {
-            constructor(color, secondaryColor) {
+            constructor(type = 'basic', color = '#f00', secondaryColor = '#f66') {
                 this.canvas = document.createElement('canvas');
                 this.canvas.width = TILE_SIZE;
                 this.canvas.height = TILE_SIZE;
                 this.ctx = this.canvas.getContext('2d');
+                this.type = type;
                 this.color = color;
                 this.secondaryColor = secondaryColor;
+                this.animationOffset = 0;
+                this.isStatic = type === 'basic'; // Flag for static sprites
+                this.generate();  // Generate immediately for static sprites
             }
 
             generate() {
-                this.ctx.fillStyle = this.color;
-                this.ctx.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+                this.ctx.clearRect(0, 0, TILE_SIZE, TILE_SIZE);
+                
+                if (this.isStatic) {
+                    // Draw terrain with textures
+                    switch (this.color) {
+                        case '#3a3': // grass
+                            this.drawGrass();
+                            break;
+                        case '#696': // hills
+                            this.drawHills();
+                            break;
+                        case '#ca6': // desert
+                            this.drawDesert();
+                            break;
+                        case '#39f': // water
+                            this.drawWater();
+                            break;
+                        case '#666': // mountains
+                            this.drawMountains();
+                            break;
+                        default:
+                            this.ctx.fillStyle = this.color;
+                            this.ctx.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+                    }
+                    return;
+                }
 
-                // Special handling for mountains
-                if (this.color === '#666') {  // Mountain color
-                    // Draw 2-3 mountain peaks
-                    const numPeaks = 2 + Math.floor(Math.random() * 2);
+                switch (this.type) {
+                    case 'Slime':
+                        this.drawSlime();
+                        break;
+                    case 'Goblin':
+                        this.drawGoblin();
+                        break;
+                    case 'Bat':
+                        this.drawBat();
+                        break;
+                    case 'Ghost':
+                        this.drawGhost();
+                        break;
+                    case 'Spider':
+                        this.drawSpider();
+                        break;
+                    case 'Orc':
+                        this.drawOrc();
+                        break;
+                    case 'Zombie':
+                        this.drawZombie();
+                        break;
+                    case 'Rat':
+                        this.drawRat();
+                        break;
+                    case 'Skeleton':
+                        this.drawSkeleton();
+                        break;
+                    case 'Imp':
+                        this.drawImp();
+                        break;
+                    case 'hero':
+                        this.drawHero();
+                        break;
+                    default:
+                        this.drawBasicShape();
+                }
+            }
+
+            drawGrass() {
+                const ctx = this.ctx;
+                ctx.fillStyle = '#3a3';
+                ctx.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+                
+                // Add grass texture
+                ctx.fillStyle = '#4b4';
+                for (let i = 0; i < 8; i++) {
+                    const x = Math.random() * TILE_SIZE;
+                    const y = Math.random() * TILE_SIZE;
+                    ctx.fillRect(x, y, 2, 4);
+                }
+            }
+
+            drawHills() {
+                const ctx = this.ctx;
+                ctx.fillStyle = '#696';
+                ctx.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+                
+                // Add hill curves
+                ctx.strokeStyle = '#7a7';
+                ctx.beginPath();
+                ctx.moveTo(0, TILE_SIZE * 0.7);
+                ctx.quadraticCurveTo(TILE_SIZE * 0.5, TILE_SIZE * 0.4, TILE_SIZE, TILE_SIZE * 0.6);
+                ctx.stroke();
+            }
+
+            drawDesert() {
+                const ctx = this.ctx;
+                ctx.fillStyle = '#ca6';
+                ctx.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+                
+                // Add sand dune texture
+                ctx.fillStyle = '#db7';
+                for (let i = 0; i < 5; i++) {
+                    const x = Math.random() * TILE_SIZE;
+                    const y = Math.random() * TILE_SIZE;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            drawWater() {
+                const ctx = this.ctx;
+                ctx.fillStyle = '#39f';
+                ctx.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+                
+                // Add wave lines
+                ctx.strokeStyle = '#4af';
+                ctx.beginPath();
+                for (let y = 4; y < TILE_SIZE; y += 8) {
+                    ctx.moveTo(0, y);
+                    ctx.quadraticCurveTo(TILE_SIZE/2, y + 4, TILE_SIZE, y);
+                }
+                ctx.stroke();
+            }
+
+            drawMountains() {
+                const ctx = this.ctx;
+                ctx.fillStyle = '#666';
+                ctx.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+                
+                // Draw mountain peaks
+                ctx.fillStyle = '#777';
+                ctx.beginPath();
+                ctx.moveTo(0, TILE_SIZE);
+                ctx.lineTo(TILE_SIZE * 0.3, TILE_SIZE * 0.3);
+                ctx.lineTo(TILE_SIZE * 0.5, TILE_SIZE * 0.5);
+                ctx.lineTo(TILE_SIZE * 0.7, TILE_SIZE * 0.2);
+                ctx.lineTo(TILE_SIZE, TILE_SIZE * 0.4);
+                ctx.lineTo(TILE_SIZE, TILE_SIZE);
+                ctx.fill();
+                
+                // Add snow caps
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE * 0.3, TILE_SIZE * 0.3);
+                ctx.lineTo(TILE_SIZE * 0.4, TILE_SIZE * 0.35);
+                ctx.lineTo(TILE_SIZE * 0.5, TILE_SIZE * 0.5);
+                ctx.lineTo(TILE_SIZE * 0.6, TILE_SIZE * 0.35);
+                ctx.lineTo(TILE_SIZE * 0.7, TILE_SIZE * 0.2);
+                ctx.fill();
+            }
+
+            drawSlime() {
+                const ctx = this.ctx;
+                const bounce = Math.sin(this.animationOffset) * 2;
+                
+                // Body
+                ctx.fillStyle = '#4af';
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2, 
+                    TILE_SIZE/2 + 5 + bounce, 
+                    TILE_SIZE/2 - 4, 
+                    TILE_SIZE/3 - bounce, 
+                    0, 0, Math.PI * 2
+                );
+                ctx.fill();
+
+                // Eyes
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.ellipse(TILE_SIZE/2 - 5, TILE_SIZE/2 + bounce, 3, 3, 0, 0, Math.PI * 2);
+                ctx.ellipse(TILE_SIZE/2 + 5, TILE_SIZE/2 + bounce, 3, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Pupils
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.ellipse(TILE_SIZE/2 - 5, TILE_SIZE/2 + bounce, 1, 1, 0, 0, Math.PI * 2);
+                ctx.ellipse(TILE_SIZE/2 + 5, TILE_SIZE/2 + bounce, 1, 1, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawGoblin() {
+                const ctx = this.ctx;
+                
+                // Head
+                ctx.fillStyle = '#6a6';
+                ctx.beginPath();
+                ctx.ellipse(TILE_SIZE/2, TILE_SIZE/2 - 4, 8, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Ears
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 8, TILE_SIZE/2 - 4);
+                ctx.lineTo(TILE_SIZE/2 - 12, TILE_SIZE/2 - 8);
+                ctx.lineTo(TILE_SIZE/2 - 8, TILE_SIZE/2 - 12);
+                ctx.moveTo(TILE_SIZE/2 + 8, TILE_SIZE/2 - 4);
+                ctx.lineTo(TILE_SIZE/2 + 12, TILE_SIZE/2 - 8);
+                ctx.lineTo(TILE_SIZE/2 + 8, TILE_SIZE/2 - 12);
+                ctx.stroke();
+
+                // Eyes
+                ctx.fillStyle = 'red';
+                ctx.beginPath();
+                ctx.ellipse(TILE_SIZE/2 - 3, TILE_SIZE/2 - 5, 2, 2, 0, 0, Math.PI * 2);
+                ctx.ellipse(TILE_SIZE/2 + 3, TILE_SIZE/2 - 5, 2, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Body
+                ctx.fillStyle = '#696';
+                ctx.fillRect(TILE_SIZE/2 - 6, TILE_SIZE/2 + 4, 12, 12);
+            }
+
+            drawBat() {
+                const ctx = this.ctx;
+                const wingOffset = Math.sin(this.animationOffset) * 5;
+                
+                // Wings
+                ctx.fillStyle = '#444';
+                ctx.beginPath();
+                // Left wing
+                ctx.moveTo(TILE_SIZE/2, TILE_SIZE/2);
+                ctx.quadraticCurveTo(
+                    TILE_SIZE/2 - 8, 
+                    TILE_SIZE/2 - wingOffset,
+                    TILE_SIZE/2 - 12, 
+                    TILE_SIZE/2 + 4
+                );
+                // Right wing
+                ctx.moveTo(TILE_SIZE/2, TILE_SIZE/2);
+                ctx.quadraticCurveTo(
+                    TILE_SIZE/2 + 8, 
+                    TILE_SIZE/2 - wingOffset,
+                    TILE_SIZE/2 + 12, 
+                    TILE_SIZE/2 + 4
+                );
+                ctx.fill();
+
+                // Body
+                ctx.fillStyle = '#666';
+                ctx.beginPath();
+                ctx.ellipse(TILE_SIZE/2, TILE_SIZE/2, 4, 6, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eyes
+                ctx.fillStyle = 'red';
+                ctx.beginPath();
+                ctx.ellipse(TILE_SIZE/2 - 2, TILE_SIZE/2 - 1, 1, 1, 0, 0, Math.PI * 2);
+                ctx.ellipse(TILE_SIZE/2 + 2, TILE_SIZE/2 - 1, 1, 1, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawGhost() {
+                const ctx = this.ctx;
+                const float = Math.sin(this.animationOffset) * 2;
+                
+                // Body
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 8, TILE_SIZE/2 - 8 + float);
+                ctx.quadraticCurveTo(
+                    TILE_SIZE/2, TILE_SIZE/2 - 12 + float,
+                    TILE_SIZE/2 + 8, TILE_SIZE/2 - 8 + float
+                );
+                ctx.lineTo(TILE_SIZE/2 + 8, TILE_SIZE/2 + 8 + float);
+                
+                // Wavy bottom
+                for (let i = 0; i < 4; i++) {
+                    ctx.quadraticCurveTo(
+                        TILE_SIZE/2 + 4 - i * 8, TILE_SIZE/2 + 12 + float + (i % 2 * 4),
+                        TILE_SIZE/2 - 8 + i * 8, TILE_SIZE/2 + 8 + float
+                    );
+                }
+                ctx.fill();
+
+                // Eyes
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.beginPath();
+                ctx.ellipse(TILE_SIZE/2 - 3, TILE_SIZE/2 - 4 + float, 2, 2, 0, 0, Math.PI * 2);
+                ctx.ellipse(TILE_SIZE/2 + 3, TILE_SIZE/2 - 4 + float, 2, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawSpider() {
+                const ctx = this.ctx;
+                const legOffset = Math.sin(this.animationOffset) * 2;
+                
+                // Body
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.ellipse(TILE_SIZE/2, TILE_SIZE/2, 6, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Legs
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i * Math.PI / 4) + (i % 2 ? legOffset : -legOffset);
+                    ctx.beginPath();
+                    ctx.moveTo(TILE_SIZE/2, TILE_SIZE/2);
+                    const x = TILE_SIZE/2 + Math.cos(angle) * 12;
+                    const y = TILE_SIZE/2 + Math.sin(angle) * 12;
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                }
+
+                // Eyes
+                ctx.fillStyle = 'red';
+                for (let i = 0; i < 6; i++) {
+                    const x = TILE_SIZE/2 - 3 + (i % 3) * 3;
+                    const y = TILE_SIZE/2 - 2 + Math.floor(i / 3) * 2;
+                    ctx.beginPath();
+                    ctx.ellipse(x, y, 1, 1, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            drawHero() {
+                const ctx = this.ctx;
+                const breathe = Math.sin(this.animationOffset) * 1.5;
+                const swordFloat = Math.sin(this.animationOffset * 0.8) * 2;
+                
+                // Shield (behind body)
+                ctx.fillStyle = '#444';
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2 - 6,
+                    TILE_SIZE/2 + 2,
+                    6,
+                    8,
+                    0, 0, Math.PI * 2
+                );
+                ctx.fill();
+                ctx.stroke();
+
+                // Shield emblem
+                ctx.strokeStyle = '#dd0';
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 8, TILE_SIZE/2 + 2);
+                ctx.lineTo(TILE_SIZE/2 - 4, TILE_SIZE/2 + 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 6, TILE_SIZE/2);
+                ctx.lineTo(TILE_SIZE/2 - 6, TILE_SIZE/2 + 4);
+                ctx.stroke();
+
+                // Body armor
+                ctx.fillStyle = '#667';  // Steel blue-grey
+                ctx.fillRect(TILE_SIZE/2 - 6, TILE_SIZE/2 - 2 + breathe, 12, 14);
+                
+                // Chest plate details
+                ctx.strokeStyle = '#99a';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 4, TILE_SIZE/2 + breathe);
+                ctx.lineTo(TILE_SIZE/2 + 4, TILE_SIZE/2 + breathe);
+                ctx.moveTo(TILE_SIZE/2 - 3, TILE_SIZE/2 + 4 + breathe);
+                ctx.lineTo(TILE_SIZE/2 + 3, TILE_SIZE/2 + 4 + breathe);
+                ctx.stroke();
+
+                // Cape
+                ctx.fillStyle = '#c22';  // Deep red
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 5, TILE_SIZE/2 - 4);
+                ctx.quadraticCurveTo(
+                    TILE_SIZE/2 - 8 + Math.sin(this.animationOffset) * 1.5,
+                    TILE_SIZE/2 + 6,
+                    TILE_SIZE/2 - 6,
+                    TILE_SIZE/2 + 14
+                );
+                ctx.lineTo(TILE_SIZE/2 + 6, TILE_SIZE/2 + 14);
+                ctx.quadraticCurveTo(
+                    TILE_SIZE/2 + 8 + Math.sin(this.animationOffset) * 1.5,
+                    TILE_SIZE/2 + 6,
+                    TILE_SIZE/2 + 5,
+                    TILE_SIZE/2 - 4
+                );
+                ctx.fill();
+
+                // Head with helmet
+                ctx.fillStyle = '#667';  // Steel blue-grey
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2,
+                    TILE_SIZE/2 - 8 + breathe,
+                    6,
+                    6,
+                    0, 0, Math.PI * 2
+                );
+                ctx.fill();
+
+                // Helmet details
+                ctx.strokeStyle = '#99a';
+                ctx.lineWidth = 1;
+                // Visor
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 4, TILE_SIZE/2 - 8 + breathe);
+                ctx.lineTo(TILE_SIZE/2 + 4, TILE_SIZE/2 - 8 + breathe);
+                ctx.stroke();
+                // Plume/crest
+                ctx.fillStyle = '#e33';
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2, TILE_SIZE/2 - 14 + breathe);
+                ctx.quadraticCurveTo(
+                    TILE_SIZE/2 + 4,
+                    TILE_SIZE/2 - 10 + breathe,
+                    TILE_SIZE/2 + 8,
+                    TILE_SIZE/2 - 8 + breathe
+                );
+                ctx.fill();
+
+                // Sword (glowing)
+                ctx.strokeStyle = '#aaa';  // Blade
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 + 6, TILE_SIZE/2 - 4 + swordFloat);
+                ctx.lineTo(TILE_SIZE/2 + 14, TILE_SIZE/2 - 12 + swordFloat);
+                ctx.stroke();
+                
+                // Sword glow effect
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 + 6, TILE_SIZE/2 - 4 + swordFloat);
+                ctx.lineTo(TILE_SIZE/2 + 14, TILE_SIZE/2 - 12 + swordFloat);
+                ctx.stroke();
+
+                // Sword handle
+                ctx.strokeStyle = '#960';  // Gold crossguard
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 + 8, TILE_SIZE/2 - 6 + swordFloat);
+                ctx.lineTo(TILE_SIZE/2 + 12, TILE_SIZE/2 - 6 + swordFloat);
+                ctx.stroke();
+                
+                // Sword grip
+                ctx.strokeStyle = '#542';  // Brown grip
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 + 10, TILE_SIZE/2 - 5 + swordFloat);
+                ctx.lineTo(TILE_SIZE/2 + 10, TILE_SIZE/2 - 7 + swordFloat);
+                ctx.stroke();
+
+                // Gauntlet (sword hand)
+                ctx.fillStyle = '#556';
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2 + 6,
+                    TILE_SIZE/2 - 4 + swordFloat,
+                    3,
+                    3,
+                    0, 0, Math.PI * 2
+                );
+                ctx.fill();
+            }
+
+            drawBasicShape() {
+                const ctx = this.ctx;
+                
+                // Main color fill
+                ctx.fillStyle = this.color;
+                ctx.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+                
+                // Add some texture/variation
+                ctx.fillStyle = this.secondaryColor;
+                
+                // Draw random dots/patches
+                for (let i = 0; i < 5; i++) {
+                    const x = Math.random() * TILE_SIZE;
+                    const y = Math.random() * TILE_SIZE;
+                    const size = Math.random() * 6 + 2;
                     
-                    this.ctx.fillStyle = this.secondaryColor;
-                    for (let i = 0; i < numPeaks; i++) {
-                        const baseX = (TILE_SIZE / (numPeaks + 1)) * (i + 1);
-                        const baseWidth = 10 + Math.random() * 8;
-                        const height = 15 + Math.random() * 10;
-                        
-                        // Draw triangular peak
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(baseX - baseWidth, TILE_SIZE);
-                        this.ctx.lineTo(baseX, TILE_SIZE - height);
-                        this.ctx.lineTo(baseX + baseWidth, TILE_SIZE);
-                        this.ctx.closePath();
-                        this.ctx.fill();
-                    }
-                } else if (this.color === '#44f') {  // Water color
-                    // Draw 2-3 stylized wave groups
-                    const numWaveGroups = 2 + Math.floor(Math.random() * 2);
-                    
-                    this.ctx.fillStyle = this.secondaryColor;
-                    this.ctx.strokeStyle = this.secondaryColor;
-                    this.ctx.lineWidth = 2;
-                    
-                    for (let i = 0; i < numWaveGroups; i++) {
-                        const baseY = (TILE_SIZE / (numWaveGroups + 1)) * (i + 1);
-                        const time = Date.now() / 1000;
-                        const offset = Math.sin(time + i) * 3; // Wave group offset animation
-                        
-                        // Draw curved wave group
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(0, baseY + offset);
-                        
-                        // First curve
-                        this.ctx.bezierCurveTo(
-                            TILE_SIZE * 0.2, baseY - 4 + offset,
-                            TILE_SIZE * 0.3, baseY - 4 + offset,
-                            TILE_SIZE * 0.5, baseY + offset
-                        );
-                        
-                        // Second curve
-                        this.ctx.bezierCurveTo(
-                            TILE_SIZE * 0.7, baseY + 4 + offset,
-                            TILE_SIZE * 0.8, baseY + 4 + offset,
-                            TILE_SIZE, baseY + offset
-                        );
-                        
-                        this.ctx.stroke();
-                        
-                        // Add small wave details
-                        for (let x = 5; x < TILE_SIZE; x += 15) {
-                            const detailOffset = Math.sin((time * 2 + x) * 0.5) * 2;
-                            const y = baseY + offset + detailOffset;
-                            
-                            // Draw small curved line
-                            this.ctx.beginPath();
-                            this.ctx.moveTo(x, y);
-                            this.ctx.quadraticCurveTo(
-                                x + 4, y - 3,
-                                x + 8, y
-                            );
-                            this.ctx.stroke();
-                        }
-                    }
-                } else {
-                    // Original decoration for other terrain types
-                    this.ctx.fillStyle = this.secondaryColor;
-                    for (let i = 0; i < 5; i++) {
-                        const x = Math.random() * TILE_SIZE;
-                        const y = Math.random() * TILE_SIZE;
-                        const size = Math.random() * 6 + 2;
-                        this.ctx.fillRect(x, y, size, size);
-                    }
+                    ctx.beginPath();
+                    ctx.ellipse(x, y, size, size, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            drawOrc() {
+                const ctx = this.ctx;
+                const bounce = Math.sin(this.animationOffset) * 2;
+                
+                // Body
+                ctx.fillStyle = '#4a4';  // Dark green
+                ctx.fillRect(TILE_SIZE/2 - 8, TILE_SIZE/2 - 2, 16, 16);
+
+                // Head
+                ctx.fillStyle = '#5b5';  // Lighter green
+                ctx.beginPath();
+                ctx.ellipse(TILE_SIZE/2, TILE_SIZE/2 - 8, 8, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Tusks
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                // Left tusk
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 4, TILE_SIZE/2 - 4);
+                ctx.lineTo(TILE_SIZE/2 - 6, TILE_SIZE/2);
+                ctx.stroke();
+                // Right tusk
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 + 4, TILE_SIZE/2 - 4);
+                ctx.lineTo(TILE_SIZE/2 + 6, TILE_SIZE/2);
+                ctx.stroke();
+
+                // Eyes
+                ctx.fillStyle = 'red';
+                ctx.beginPath();
+                ctx.ellipse(TILE_SIZE/2 - 4, TILE_SIZE/2 - 8, 2, 2, 0, 0, Math.PI * 2);
+                ctx.ellipse(TILE_SIZE/2 + 4, TILE_SIZE/2 - 8, 2, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Armor
+                ctx.fillStyle = '#666';
+                ctx.fillRect(TILE_SIZE/2 - 6, TILE_SIZE/2 + 4, 12, 6);
+
+                // Weapon (axe)
+                ctx.strokeStyle = '#8b4513';  // Brown handle
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 + 8, TILE_SIZE/2 - 4);
+                ctx.lineTo(TILE_SIZE/2 + 16, TILE_SIZE/2 - 12);
+                ctx.stroke();
+
+                // Axe head
+                ctx.fillStyle = '#aaa';
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 + 14, TILE_SIZE/2 - 14);
+                ctx.lineTo(TILE_SIZE/2 + 18, TILE_SIZE/2 - 12);
+                ctx.lineTo(TILE_SIZE/2 + 16, TILE_SIZE/2 - 10);
+                ctx.fill();
+            }
+
+            drawZombie() {
+                const ctx = this.ctx;
+                const shamble = Math.sin(this.animationOffset) * 2;
+                
+                // Tattered clothes
+                ctx.fillStyle = '#2a4';  // Dark, moldy green
+                ctx.fillRect(TILE_SIZE/2 - 6, TILE_SIZE/2 - 2, 12, 14);
+                
+                // Torn edges on clothes
+                ctx.fillStyle = '#183';  // Darker green for tears
+                for (let i = 0; i < 4; i++) {
+                    const x = TILE_SIZE/2 - 6 + Math.random() * 12;
+                    const y = TILE_SIZE/2 + Math.random() * 10;
+                    ctx.fillRect(x, y, 3, 4);
+                }
+
+                // Head (sickly green)
+                ctx.fillStyle = '#9b9';
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2 + shamble/2, 
+                    TILE_SIZE/2 - 8, 
+                    7, 7, 
+                    shamble/10, 0, Math.PI * 2
+                );
+                ctx.fill();
+
+                // Exposed brain detail
+                ctx.fillStyle = '#faa';
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2 + shamble/2, 
+                    TILE_SIZE/2 - 12, 
+                    4, 2, 
+                    0, 0, Math.PI
+                );
+                ctx.fill();
+
+                // Glowing eyes
+                ctx.fillStyle = '#ff0';  // Glowing yellow
+                ctx.beginPath();
+                ctx.ellipse(TILE_SIZE/2 - 3 + shamble/2, TILE_SIZE/2 - 8, 2, 2, 0, 0, Math.PI * 2);
+                ctx.ellipse(TILE_SIZE/2 + 3 + shamble/2, TILE_SIZE/2 - 8, 2, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Hanging arm
+                ctx.strokeStyle = '#9b9';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 6, TILE_SIZE/2);
+                ctx.lineTo(
+                    TILE_SIZE/2 - 8 + Math.sin(this.animationOffset * 1.5) * 2, 
+                    TILE_SIZE/2 + 8
+                );
+                ctx.stroke();
+
+                // Dragging leg
+                ctx.strokeStyle = '#2a4';
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 3, TILE_SIZE/2 + 12);
+                ctx.lineTo(
+                    TILE_SIZE/2 - 5 + Math.sin(this.animationOffset * 0.5) * 3, 
+                    TILE_SIZE/2 + 16
+                );
+                ctx.stroke();
+
+                // Blood stains
+                ctx.fillStyle = '#a00';
+                for (let i = 0; i < 3; i++) {
+                    const x = TILE_SIZE/2 - 6 + Math.random() * 12;
+                    const y = TILE_SIZE/2 - 2 + Math.random() * 14;
+                    ctx.beginPath();
+                    ctx.ellipse(x, y, 2, 1, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            drawRat() {
+                const ctx = this.ctx;
+                const scurry = Math.sin(this.animationOffset * 2) * 2; // Faster animation
+                
+                // Body
+                ctx.fillStyle = '#644'; // Dark brown
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2, 
+                    TILE_SIZE/2 + 4, 
+                    8, 6, 
+                    0, 0, Math.PI * 2
+                );
+                ctx.fill();
+
+                // Head
+                ctx.fillStyle = '#755'; // Lighter brown
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2 + 6, 
+                    TILE_SIZE/2 + 2, 
+                    5, 4, 
+                    -0.3, 0, Math.PI * 2
+                );
+                ctx.fill();
+
+                // Ears
+                ctx.fillStyle = '#866'; // Even lighter brown
+                // Left ear
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2 + 4, 
+                    TILE_SIZE/2 - 1, 
+                    2, 3, 
+                    -0.5, 0, Math.PI * 2
+                );
+                ctx.fill();
+                // Right ear
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2 + 7, 
+                    TILE_SIZE/2 - 1, 
+                    2, 3, 
+                    0.5, 0, Math.PI * 2
+                );
+                ctx.fill();
+
+                // Eyes
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2 + 7, 
+                    TILE_SIZE/2 + 1, 
+                    1, 1, 
+                    0, 0, Math.PI * 2
+                );
+                ctx.fill();
+
+                // Nose
+                ctx.fillStyle = '#pink';
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2 + 10, 
+                    TILE_SIZE/2 + 2, 
+                    1, 1, 
+                    0, 0, Math.PI * 2
+                );
+                ctx.fill();
+
+                // Tail
+                ctx.strokeStyle = '#644';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 8, TILE_SIZE/2 + 4);
+                ctx.quadraticCurveTo(
+                    TILE_SIZE/2 - 12,
+                    TILE_SIZE/2 + 8 + scurry,
+                    TILE_SIZE/2 - 16,
+                    TILE_SIZE/2 + 6
+                );
+                ctx.stroke();
+
+                // Legs (animated)
+                ctx.strokeStyle = '#644';
+                ctx.lineWidth = 1;
+                // Front legs
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 + 4, TILE_SIZE/2 + 6);
+                ctx.lineTo(TILE_SIZE/2 + 4, TILE_SIZE/2 + 10 + Math.abs(scurry));
+                ctx.moveTo(TILE_SIZE/2 + 4, TILE_SIZE/2 + 10 + Math.abs(scurry));
+                ctx.lineTo(TILE_SIZE/2 + 4, TILE_SIZE/2 + 14 + Math.abs(scurry));
+                ctx.stroke();
+                // Back legs
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 + 4, TILE_SIZE/2 + 14 + Math.abs(scurry));
+                ctx.lineTo(TILE_SIZE/2 + 4, TILE_SIZE/2 + 18 + Math.abs(scurry));
+                ctx.stroke();
+            }
+
+            drawSkeleton() {
+                const ctx = this.ctx;
+                const rattle = Math.sin(this.animationOffset * 2) * 1.5;
+                
+                // Skull
+                ctx.fillStyle = '#eee';
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2 + rattle/2, 
+                    TILE_SIZE/2 - 8, 
+                    6, 7, 
+                    0, 0, Math.PI * 2
+                );
+                ctx.fill();
+
+                // Eye sockets
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.ellipse(TILE_SIZE/2 - 2 + rattle/2, TILE_SIZE/2 - 8, 2, 2, 0, 0, Math.PI * 2);
+                ctx.ellipse(TILE_SIZE/2 + 2 + rattle/2, TILE_SIZE/2 - 8, 2, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Jaw
+                ctx.strokeStyle = '#eee';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 4 + rattle/2, TILE_SIZE/2 - 4);
+                ctx.lineTo(TILE_SIZE/2 + 4 + rattle/2, TILE_SIZE/2 - 4);
+                ctx.stroke();
+
+                // Ribcage
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(TILE_SIZE/2 - 6, TILE_SIZE/2 + i * 4);
+                    ctx.quadraticCurveTo(
+                        TILE_SIZE/2 + rattle, 
+                        TILE_SIZE/2 + 2 + i * 4, 
+                        TILE_SIZE/2 + 6, 
+                        TILE_SIZE/2 + i * 4
+                    );
+                    ctx.stroke();
+                }
+
+                // Spine
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2, TILE_SIZE/2);
+                ctx.lineTo(TILE_SIZE/2, TILE_SIZE/2 + 12);
+                ctx.stroke();
+
+                // Arms (with joints)
+                ctx.lineWidth = 2;
+                // Left arm
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 6, TILE_SIZE/2 + 2);
+                ctx.lineTo(TILE_SIZE/2 - 8 + rattle, TILE_SIZE/2 + 6);
+                ctx.lineTo(TILE_SIZE/2 - 10 - rattle, TILE_SIZE/2 + 12);
+                ctx.stroke();
+                // Right arm
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 + 6, TILE_SIZE/2 + 2);
+                ctx.lineTo(TILE_SIZE/2 + 8 - rattle, TILE_SIZE/2 + 6);
+                ctx.lineTo(TILE_SIZE/2 + 10 + rattle, TILE_SIZE/2 + 12);
+                ctx.stroke();
+
+                // Legs
+                // Left leg
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2, TILE_SIZE/2 + 12);
+                ctx.lineTo(TILE_SIZE/2 - 2 + rattle, TILE_SIZE/2 + 16);
+                ctx.lineTo(TILE_SIZE/2 - 4, TILE_SIZE/2 + 20);
+                ctx.stroke();
+                // Right leg
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2, TILE_SIZE/2 + 12);
+                ctx.lineTo(TILE_SIZE/2 + 2 - rattle, TILE_SIZE/2 + 16);
+                ctx.lineTo(TILE_SIZE/2 + 4, TILE_SIZE/2 + 20);
+                ctx.stroke();
+
+                // Weapon (rusty sword)
+                ctx.strokeStyle = '#963';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 + 10 + rattle, TILE_SIZE/2 + 12);
+                ctx.lineTo(TILE_SIZE/2 + 16 + rattle, TILE_SIZE/2 + 4);
+                ctx.stroke();
+                
+                // Sword guard
+                ctx.strokeStyle = '#741';
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 + 14 + rattle, TILE_SIZE/2 + 6);
+                ctx.lineTo(TILE_SIZE/2 + 12 + rattle, TILE_SIZE/2 + 6);
+                ctx.stroke();
+            }
+
+            drawImp() {
+                const ctx = this.ctx;
+                const float = Math.sin(this.animationOffset) * 2;
+                const wingFlap = Math.abs(Math.sin(this.animationOffset * 2)) * 4;
+                
+                // Wings
+                ctx.fillStyle = '#800';  // Dark red
+                // Left wing
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 4, TILE_SIZE/2);
+                ctx.quadraticCurveTo(
+                    TILE_SIZE/2 - 8 - wingFlap,
+                    TILE_SIZE/2 - 4 + float,
+                    TILE_SIZE/2 - 12,
+                    TILE_SIZE/2 + 8
+                );
+                ctx.lineTo(TILE_SIZE/2 - 4, TILE_SIZE/2 + 4);
+                ctx.fill();
+                
+                // Right wing
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 + 4, TILE_SIZE/2);
+                ctx.quadraticCurveTo(
+                    TILE_SIZE/2 + 8 + wingFlap,
+                    TILE_SIZE/2 - 4 + float,
+                    TILE_SIZE/2 + 12,
+                    TILE_SIZE/2 + 8
+                );
+                ctx.lineTo(TILE_SIZE/2 + 4, TILE_SIZE/2 + 4);
+                ctx.fill();
+
+                // Body
+                ctx.fillStyle = '#c00';  // Bright red
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2,
+                    TILE_SIZE/2 + float,
+                    6,
+                    8,
+                    0, 0, Math.PI * 2
+                );
+                ctx.fill();
+
+                // Head
+                ctx.fillStyle = '#c00';
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2,
+                    TILE_SIZE/2 - 6 + float,
+                    5,
+                    5,
+                    0, 0, Math.PI * 2
+                );
+                ctx.fill();
+
+                // Horns
+                ctx.fillStyle = '#800';
+                // Left horn
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 4, TILE_SIZE/2 - 8 + float);
+                ctx.lineTo(TILE_SIZE/2 - 6, TILE_SIZE/2 - 12 + float);
+                ctx.lineTo(TILE_SIZE/2 - 3, TILE_SIZE/2 - 9 + float);
+                ctx.fill();
+                // Right horn
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 + 4, TILE_SIZE/2 - 8 + float);
+                ctx.lineTo(TILE_SIZE/2 + 6, TILE_SIZE/2 - 12 + float);
+                ctx.lineTo(TILE_SIZE/2 + 3, TILE_SIZE/2 - 9 + float);
+                ctx.fill();
+
+                // Eyes (glowing)
+                ctx.fillStyle = '#ff0';  // Bright yellow
+                ctx.beginPath();
+                ctx.ellipse(
+                    TILE_SIZE/2 - 2,
+                    TILE_SIZE/2 - 6 + float,
+                    1.5,
+                    1.5,
+                    0, 0, Math.PI * 2
+                );
+                ctx.ellipse(
+                    TILE_SIZE/2 + 2,
+                    TILE_SIZE/2 - 6 + float,
+                    1.5,
+                    1.5,
+                    0, 0, Math.PI * 2
+                );
+                ctx.fill();
+
+                // Mischievous grin
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2 - 3, TILE_SIZE/2 - 4 + float);
+                ctx.quadraticCurveTo(
+                    TILE_SIZE/2,
+                    TILE_SIZE/2 - 2 + float,
+                    TILE_SIZE/2 + 3,
+                    TILE_SIZE/2 - 4 + float
+                );
+                ctx.stroke();
+
+                // Tail
+                ctx.strokeStyle = '#c00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(TILE_SIZE/2, TILE_SIZE/2 + 8 + float);
+                ctx.quadraticCurveTo(
+                    TILE_SIZE/2 + Math.sin(this.animationOffset * 2) * 4,
+                    TILE_SIZE/2 + 12 + float,
+                    TILE_SIZE/2 + Math.cos(this.animationOffset) * 4,
+                    TILE_SIZE/2 + 16 + float
+                );
+                ctx.stroke();
+
+                // Tail tip (spade shape)
+                ctx.fillStyle = '#800';
+                ctx.beginPath();
+                ctx.moveTo(
+                    TILE_SIZE/2 + Math.cos(this.animationOffset) * 4,
+                    TILE_SIZE/2 + 14 + float
+                );
+                ctx.lineTo(
+                    TILE_SIZE/2 + Math.cos(this.animationOffset) * 4 - 3,
+                    TILE_SIZE/2 + 18 + float
+                );
+                ctx.lineTo(
+                    TILE_SIZE/2 + Math.cos(this.animationOffset) * 4 + 3,
+                    TILE_SIZE/2 + 18 + float
+                );
+                ctx.fill();
+            }
+
+            update(deltaTime) {
+                if (!this.isStatic) {  // Only update animated sprites
+                    this.animationOffset += deltaTime * 0.005;
+                    this.generate();
                 }
             }
         }
 
+        // Update sprite creation with simple colors
         const sprites = {
-            grass: new Sprite('#3a3', '#4b4'),
-            hills: new Sprite('#696', '#7a7'),
-            desert: new Sprite('#ca6', '#db7'),
-            water: new Sprite('#39f', '#4af'),
-            mountains: new Sprite('#666', '#777'),
-            hero: new Sprite('#f00', '#f66'),
+            grass: new Sprite('basic', '#3a3'),
+            hills: new Sprite('basic', '#696'),
+            desert: new Sprite('basic', '#ca6'),
+            water: new Sprite('basic', '#39f'),
+            mountains: new Sprite('basic', '#666'),
+            hero: new Sprite('hero'),
         };
 
-        const enemySprites = ENEMY_TYPES.map(() => new Sprite(
-            `hsl(${Math.random() * 360}, 70%, 50%)`,
-            `hsl(${Math.random() * 360}, 70%, 70%)`
-        ));
+        // Create enemy sprites with their specific types
+        const enemySprites = ENEMY_TYPES.map(type => new Sprite(type));
 
         Object.values(sprites).forEach(sprite => sprite.generate());
         enemySprites.forEach(sprite => sprite.generate());
@@ -430,6 +1298,8 @@ const canvas = document.getElementById('gameCanvas');
 
         // Update the drawBattleScene function
         function drawBattleScene() {
+            const BATTLE_SPRITE_SIZE = 128; // Large size for battle sprites
+            
             // Get the terrain the player is standing on
             const currentTerrain = getTileAt(player.x, player.y - 1);
             
@@ -443,16 +1313,62 @@ const canvas = document.getElementById('gameCanvas');
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
             
-            // Draw characters and UI on top
-            ctx.drawImage(sprites.hero.canvas, 100, 300);
-            ctx.drawImage(enemySprites[ENEMY_TYPES.indexOf(currentEnemy.name)].canvas, 500, 300);
+            // Move sprites up by adjusting Y position
+            const heroY = canvas.height - BATTLE_SPRITE_SIZE - 80; // Increased padding from bottom
+            const enemyY = heroY; // Keep them at same height
             
+            // Draw hero on left side
+            ctx.save();
+            ctx.imageSmoothingEnabled = false; // Keep pixel art sharp when scaling
+            ctx.drawImage(
+                sprites.hero.canvas,
+                50, // X position
+                heroY,
+                BATTLE_SPRITE_SIZE,
+                BATTLE_SPRITE_SIZE
+            );
+
+            // Draw enemy on right side
+            const enemySprite = enemySprites[ENEMY_TYPES.indexOf(currentEnemy.name)];
+            ctx.drawImage(
+                enemySprite.canvas,
+                canvas.width - BATTLE_SPRITE_SIZE - 50,
+                enemyY,
+                BATTLE_SPRITE_SIZE,
+                BATTLE_SPRITE_SIZE
+            );
+            ctx.restore();
+            
+            // Draw battle UI
             ctx.fillStyle = '#fff';
-            ctx.font = '20px monospace';
-            ctx.fillText(`${player.name} HP: ${player.hp}/${player.maxHp}`, 50, 50);
-            ctx.fillText(`${currentEnemy.name} HP: ${currentEnemy.hp}`, 450, 50);
+            ctx.font = '24px monospace';
             
-            ctx.fillText('Press A to attack or R to run', 200, 450);
+            // Move HP text up to top of screen
+            const topPadding = 30;
+            ctx.fillText(`${player.name} HP: ${player.hp}/${player.maxHp}`, 50, topPadding);
+            ctx.fillText(`${currentEnemy.name} HP: ${currentEnemy.hp}`, canvas.width - 300, topPadding);
+            
+            // Draw HP bars just below the text
+            drawHealthBar(50, topPadding + 10, player.hp, player.maxHp, 200);
+            drawHealthBar(canvas.width - 250, topPadding + 10, currentEnemy.hp, 100, 200);
+        }
+
+        // Add this helper function for health bars
+        function drawHealthBar(x, y, current, max, width) {
+            const height = 20;
+            const percentage = current / max;
+            
+            // Draw background
+            ctx.fillStyle = '#600';
+            ctx.fillRect(x, y, width, height);
+            
+            // Draw health
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(x, y, width * percentage, height);
+            
+            // Draw border
+            ctx.strokeStyle = '#fff';
+            ctx.strokeRect(x, y, width, height);
         }
 
         function battle(action) {
@@ -768,5 +1684,27 @@ const canvas = document.getElementById('gameCanvas');
                 soundClone.play().catch(error => console.log('Sound play failed:', error));
             }
         }
+
+        let lastTime = 0;
+
+        function gameLoop(timestamp) {
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+            
+            // Only update enemy sprites
+            enemySprites.forEach(sprite => sprite.update(deltaTime));
+            sprites.hero.update(deltaTime);
+            
+            // Redraw the game
+            if (!currentEnemy) {
+                drawMap();
+            } else {
+                drawBattleScene();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        requestAnimationFrame(gameLoop);
 
         init();
