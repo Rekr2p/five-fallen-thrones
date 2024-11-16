@@ -96,12 +96,83 @@ const canvas = document.getElementById('gameCanvas');
             generate() {
                 this.ctx.fillStyle = this.color;
                 this.ctx.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
-                this.ctx.fillStyle = this.secondaryColor;
-                for (let i = 0; i < 5; i++) {
-                    const x = Math.random() * TILE_SIZE;
-                    const y = Math.random() * TILE_SIZE;
-                    const size = Math.random() * 6 + 2;
-                    this.ctx.fillRect(x, y, size, size);
+
+                // Special handling for mountains
+                if (this.color === '#666') {  // Mountain color
+                    // Draw 2-3 mountain peaks
+                    const numPeaks = 2 + Math.floor(Math.random() * 2);
+                    
+                    this.ctx.fillStyle = this.secondaryColor;
+                    for (let i = 0; i < numPeaks; i++) {
+                        const baseX = (TILE_SIZE / (numPeaks + 1)) * (i + 1);
+                        const baseWidth = 10 + Math.random() * 8;
+                        const height = 15 + Math.random() * 10;
+                        
+                        // Draw triangular peak
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(baseX - baseWidth, TILE_SIZE);
+                        this.ctx.lineTo(baseX, TILE_SIZE - height);
+                        this.ctx.lineTo(baseX + baseWidth, TILE_SIZE);
+                        this.ctx.closePath();
+                        this.ctx.fill();
+                    }
+                } else if (this.color === '#44f') {  // Water color
+                    // Draw 2-3 stylized wave groups
+                    const numWaveGroups = 2 + Math.floor(Math.random() * 2);
+                    
+                    this.ctx.fillStyle = this.secondaryColor;
+                    this.ctx.strokeStyle = this.secondaryColor;
+                    this.ctx.lineWidth = 2;
+                    
+                    for (let i = 0; i < numWaveGroups; i++) {
+                        const baseY = (TILE_SIZE / (numWaveGroups + 1)) * (i + 1);
+                        const time = Date.now() / 1000;
+                        const offset = Math.sin(time + i) * 3; // Wave group offset animation
+                        
+                        // Draw curved wave group
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(0, baseY + offset);
+                        
+                        // First curve
+                        this.ctx.bezierCurveTo(
+                            TILE_SIZE * 0.2, baseY - 4 + offset,
+                            TILE_SIZE * 0.3, baseY - 4 + offset,
+                            TILE_SIZE * 0.5, baseY + offset
+                        );
+                        
+                        // Second curve
+                        this.ctx.bezierCurveTo(
+                            TILE_SIZE * 0.7, baseY + 4 + offset,
+                            TILE_SIZE * 0.8, baseY + 4 + offset,
+                            TILE_SIZE, baseY + offset
+                        );
+                        
+                        this.ctx.stroke();
+                        
+                        // Add small wave details
+                        for (let x = 5; x < TILE_SIZE; x += 15) {
+                            const detailOffset = Math.sin((time * 2 + x) * 0.5) * 2;
+                            const y = baseY + offset + detailOffset;
+                            
+                            // Draw small curved line
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+                            this.ctx.quadraticCurveTo(
+                                x + 4, y - 3,
+                                x + 8, y
+                            );
+                            this.ctx.stroke();
+                        }
+                    }
+                } else {
+                    // Original decoration for other terrain types
+                    this.ctx.fillStyle = this.secondaryColor;
+                    for (let i = 0; i < 5; i++) {
+                        const x = Math.random() * TILE_SIZE;
+                        const y = Math.random() * TILE_SIZE;
+                        const size = Math.random() * 6 + 2;
+                        this.ctx.fillRect(x, y, size, size);
+                    }
                 }
             }
         }
