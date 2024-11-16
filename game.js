@@ -1140,14 +1140,14 @@ const canvas = document.getElementById('gameCanvas');
                 // Call the standalone function
                 playLevelUpSequence();
                 
-                updateGameInfo(`Level up! You are now level ${this.level}`);
+                showGameMessage(`Level up! You are now level ${this.level}`);
             }
 
             camp() {
                 const healAmount = Math.floor(this.maxHp * 0.5);
                 this.hp = Math.min(this.maxHp, this.hp + healAmount);
                 playSound('CAMP');
-                updateGameInfo(`You set up camp and restored ${healAmount} HP.`);
+                showGameMessage(`You set up camp and restored ${healAmount} HP.`);
             }
         }
 
@@ -1261,16 +1261,19 @@ const canvas = document.getElementById('gameCanvas');
                 Math.floor(MAP_HEIGHT/2) * TILE_SIZE);
         }
 
-        function updateGameInfo(message) {
-            gameInfo.innerHTML = `
-                HP: ${player.hp}/${player.maxHp} | Gold: ${player.gold} | XP: ${player.xp} | Level: ${player.level}
-                <br>${message || ''}
-            `;
+        function updateGameStats() {
+            const statsDiv = document.getElementById('gameStats');
+            statsDiv.innerHTML = `HP: ${player.hp}/${player.maxHp} | Gold: ${player.gold} | XP: ${player.xp} | Level: ${player.level}`;
+        }
+
+        function showGameMessage(message) {
+            const messagesDiv = document.getElementById('gameMessages');
+            messagesDiv.innerHTML = message || '';
         }
 
         function startBattle() {
             currentEnemy = new Enemy(ENEMY_TYPES[Math.floor(Math.random() * ENEMY_TYPES.length)]);
-            updateGameInfo(`A wild ${currentEnemy.name} appears!`);
+            showGameMessage(`A wild ${currentEnemy.name} appears!`);
             
             // Trigger battle transition and music
             battleTransition.style.opacity = '1';
@@ -1378,37 +1381,35 @@ const canvas = document.getElementById('gameCanvas');
                 currentEnemy.hp -= damage;
                 
                 setTimeout(() => {
-                    // Check if enemy still exists before accessing properties
                     if (currentEnemy) {
-                        updateGameInfo(`You dealt ${damage} damage to the ${currentEnemy.name}`);
+                        showGameMessage(`You dealt ${damage} damage to the ${currentEnemy.name}`);
                         
                         if (currentEnemy.hp <= 0) {
-                            const defeatedEnemyName = currentEnemy.name;  // Store name before nulling
+                            const defeatedEnemyName = currentEnemy.name;
                             const goldGained = currentEnemy.gold;
                             const xpGained = currentEnemy.xp;
                             
                             player.gold += goldGained;
                             player.gainXp(xpGained);
                             
-                            currentEnemy = null;  // Clear the enemy
+                            currentEnemy = null;
                             drawMap();
                             
-                            updateGameInfo(`You defeated the ${defeatedEnemyName}! Gained ${goldGained} gold and ${xpGained} XP`);
+                            showGameMessage(`You defeated the ${defeatedEnemyName}! Gained ${goldGained} gold and ${xpGained} XP`);
                             return;
                         }
                         
-                        // Enemy attack
                         setTimeout(() => {
-                            if (currentEnemy) {  // Check again before enemy attacks
+                            if (currentEnemy) {
                                 const enemyDamage = Math.max(1, currentEnemy.attack - player.defense);
                                 player.hp -= enemyDamage;
                                 
                                 setTimeout(() => {
-                                    if (currentEnemy) {  // Final check
-                                        updateGameInfo(`The ${currentEnemy.name} dealt ${enemyDamage} damage to you`);
+                                    if (currentEnemy) {
+                                        showGameMessage(`The ${currentEnemy.name} dealt ${enemyDamage} damage to you`);
                                         
                                         if (player.hp <= 0) {
-                                            updateGameInfo('Game Over! You have been defeated.');
+                                            showGameMessage('Game Over! You have been defeated.');
                                             currentEnemy = null;
                                             return;
                                         }
@@ -1422,13 +1423,12 @@ const canvas = document.getElementById('gameCanvas');
             } else if (action === 'run') {
                 playSound('RUN');
                 if (Math.random() < 0.5) {
-                    updateGameInfo('You successfully ran away!');
+                    showGameMessage('You successfully ran away!');
                     currentEnemy = null;
                     transitionMusic(false);
                     drawMap();
                     return;
                 }
-                // ... rest of run code ...
             }
         }
 
@@ -1436,49 +1436,54 @@ const canvas = document.getElementById('gameCanvas');
             player = new Player('Mike');
             gameMap = generateMap();
             drawMap();
-            updateGameInfo();
+            updateGameStats();
+            showGameMessage('Welcome to Five Fallen Thrones!');
             setupTouchControls();
             setupKeyboardControls();
             
-            // Try to autoplay first
             BACKGROUND_MUSIC.play().catch(error => {
                 console.log('Audio autoplay failed:', error);
-                // If autoplay fails, listen for either mouse or keyboard interaction
                 document.addEventListener('click', startBackgroundMusic);
                 document.addEventListener('keydown', startBackgroundMusic);
             });
         }
 
         function setupTouchControls() {
-    const dpadButtons = ['up', 'down', 'left', 'right'];
-    dpadButtons.forEach(direction => {
-        const button = document.getElementById(direction);
-        // Add both touch and mouse events
-        ['touchstart', 'mousedown'].forEach(eventType => {
-            button.addEventListener(eventType, (e) => {
-                e.preventDefault();
-                handleMove(direction);
+            const dpadButtons = ['up', 'down', 'left', 'right'];
+            dpadButtons.forEach(direction => {
+                const button = document.getElementById(direction);
+                ['touchstart', 'mousedown'].forEach(eventType => {
+                    button.addEventListener(eventType, (e) => {
+                        e.preventDefault();
+                        const coords = getScaledCoordinates(
+                            e.touches ? e.touches[0].clientX : e.clientX,
+                            e.touches ? e.touches[0].clientY : e.clientY
+                        );
+                        handleMove(direction);
+                    });
+                });
             });
-        });
-    });
-
-    // Add both touch and mouse events for action buttons
-    ['attackButton', 'runButton', 'campButton'].forEach(buttonId => {
-        const button = document.getElementById(buttonId);
-        ['touchstart', 'mousedown'].forEach(eventType => {
-            button.addEventListener(eventType, (e) => {
-                e.preventDefault();
-                if (buttonId === 'attackButton' && currentEnemy) battle('attack');
-                if (buttonId === 'runButton' && currentEnemy) battle('run');
-                if (buttonId === 'campButton' && !currentEnemy) {
-                    player.camp();
-                    drawMap();
-                    updateGameInfo();
-                }
+        
+            ['attackButton', 'runButton', 'campButton'].forEach(buttonId => {
+                const button = document.getElementById(buttonId);
+                ['touchstart', 'mousedown'].forEach(eventType => {
+                    button.addEventListener(eventType, (e) => {
+                        e.preventDefault();
+                        const coords = getScaledCoordinates(
+                            e.touches ? e.touches[0].clientX : e.clientX,
+                            e.touches ? e.touches[0].clientY : e.clientY
+                        );
+                        if (buttonId === 'attackButton' && currentEnemy) battle('attack');
+                        if (buttonId === 'runButton' && currentEnemy) battle('run');
+                        if (buttonId === 'campButton' && !currentEnemy) {
+                            player.camp();
+                            drawMap();
+                            updateGameStats();
+                        }
+                    });
+                });
             });
-        });
-    });
-}
+        }
 
         function handleMove(direction) {
             if (currentEnemy) return;
@@ -1489,7 +1494,7 @@ const canvas = document.getElementById('gameCanvas');
                 case 'right': player.move(1, 0); break;
             }
             drawMap();
-            updateGameInfo();
+            updateGameStats();
         }
 
         function setupKeyboardControls() {
@@ -1509,11 +1514,11 @@ const canvas = document.getElementById('gameCanvas');
                         if (!currentEnemy) {
                             player.camp();
                             drawMap();
-                            updateGameInfo();
+                            updateGameStats();
                         }
                         break;
                 }
-                updateGameInfo();
+                updateGameStats();
             });
         }
 
@@ -1706,5 +1711,48 @@ const canvas = document.getElementById('gameCanvas');
         }
 
         requestAnimationFrame(gameLoop);
+
+        function handleResize() {
+            const container = document.getElementById('gameContainer');
+            const canvas = document.getElementById('gameCanvas');
+            
+            // Get the container's computed width
+            const computedWidth = container.clientWidth;
+            
+            // Calculate height based on original aspect ratio (640/480 = 1.333...)
+            const aspectRatio = 640/480;
+            const computedHeight = computedWidth / aspectRatio;
+            
+            // Set canvas size attributes to match original dimensions
+            canvas.width = 640;
+            canvas.height = 480;
+            
+            // Only force redraw if the game is fully initialized
+            if (typeof player !== 'undefined' && player !== null) {
+                if (currentEnemy) {
+                    drawBattleScene();
+                } else {
+                    drawMap();
+                }
+            }
+        }
+
+        function getScaledCoordinates(clientX, clientY) {
+            const canvas = document.getElementById('gameCanvas');
+            const rect = canvas.getBoundingClientRect();
+            
+            // Calculate the scaling factor
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        // Add this to the init function (around line 1440):
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Call once at start
 
         init();
