@@ -19,6 +19,7 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 20px;
+    padding-top: 60px;
 }
 
 #gameStats {
@@ -30,11 +31,16 @@ body {
 }
 
 #gameMessages {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
     padding: 20px;
     text-align: center;
     box-sizing: border-box;
     min-height: 40px;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
 }
 
 canvas {
