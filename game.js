@@ -25,8 +25,26 @@ const canvas = document.getElementById('gameCanvas');
         let mapOffset = { x: 0, y: 0 }; // Track total map movement
 
         const BACKGROUND_MUSIC = new Audio('assets/audio/Journey Through Realms(Travel).mp3');
-        console.log('Audio source:', BACKGROUND_MUSIC.src);
+        const BATTLE_MUSIC = new Audio('assets/audio/Pixelated Battle.mp3');
         BACKGROUND_MUSIC.loop = true;
+        BATTLE_MUSIC.loop = true;
+        console.log('Audio source:', BACKGROUND_MUSIC.src);
+
+        // Sound Effects
+        const SOUNDS = {
+            // FOOTSTEP: new Audio('assets/audio/taking_step.mp3'),
+            ATTACK: new Audio('assets/audio/sound_of_a_single_sw.mp3'),
+            // ENEMY_HIT: new Audio('assets/audio/enemy-hit.mp3'),
+            // PLAYER_HIT: new Audio('assets/audio/player-hit.mp3'),
+            CAMP: new Audio('assets/audio/crackling_campfire.mp3'),
+            LEVEL_UP: new Audio('assets/audio/level-up.mp3'),
+            RUN: new Audio('assets/audio/run-away.mp3')
+        };
+
+        // Set volume for sound effects (adjust these values as needed)
+        Object.values(SOUNDS).forEach(sound => {
+            sound.volume = 0.4;  // 40% volume for sound effects
+        });
 
         // Add this function to handle starting the music
         function startBackgroundMusic() {
@@ -96,13 +114,12 @@ const canvas = document.getElementById('gameCanvas');
                 const newX = this.x + dx;
                 const newY = this.y + dy;
                 
-                // Get the terrain at the new position directly from gameMap
                 const terrain = gameMap[newY - 1][newX];
                 
-                // Check if the new position is passable
                 if (terrain !== 'mountains' && terrain !== 'water') {
                     this.x = newX;
                     this.y = newY;
+                    // playSound('FOOTSTEP');
                     
                     // Generate new columns when moving right
                     if (dx > 0 && this.x >= gameMap[0].length - Math.floor(MAP_WIDTH/2)) {
@@ -153,12 +170,14 @@ const canvas = document.getElementById('gameCanvas');
                 this.hp = this.maxHp;
                 this.attack += 2;
                 this.defense += 1;
+                playSound('LEVEL_UP');
                 updateGameInfo(`Level up! You are now level ${this.level}`);
             }
 
             camp() {
                 const healAmount = Math.floor(this.maxHp * 0.5);
                 this.hp = Math.min(this.maxHp, this.hp + healAmount);
+                playSound('CAMP');
                 updateGameInfo(`You set up camp and restored ${healAmount} HP.`);
             }
         }
@@ -284,8 +303,10 @@ const canvas = document.getElementById('gameCanvas');
             currentEnemy = new Enemy(ENEMY_TYPES[Math.floor(Math.random() * ENEMY_TYPES.length)]);
             updateGameInfo(`A wild ${currentEnemy.name} appears!`);
             
-            // Trigger battle transition
+            // Trigger battle transition and music
             battleTransition.style.opacity = '1';
+            transitionMusic(true);
+            
             setTimeout(() => {
                 drawBattleScene();
                 battleTransition.style.opacity = '0';
@@ -308,43 +329,55 @@ const canvas = document.getElementById('gameCanvas');
 
         function battle(action) {
             if (action === 'attack') {
+                playSound('ATTACK');
                 const damage = Math.max(1, player.attack - currentEnemy.defense);
                 currentEnemy.hp -= damage;
-                updateGameInfo(`You dealt ${damage} damage to the ${currentEnemy.name}`);
                 
-                if (currentEnemy.hp <= 0) {
-                    player.gold += currentEnemy.gold;
-                    player.gainXp(currentEnemy.xp);
-                    updateGameInfo(`You defeated the ${currentEnemy.name}! Gained ${currentEnemy.gold} gold and ${currentEnemy.xp} XP`);
-                    currentEnemy = null;
-                    drawMap();
-                    return;
-                }
+                setTimeout(() => {
+                    // playSound('ENEMY_HIT');
+                    updateGameInfo(`You dealt ${damage} damage to the ${currentEnemy.name}`);
+                    
+                    if (currentEnemy.hp <= 0) {
+                        player.gold += currentEnemy.gold;
+                        player.gainXp(currentEnemy.xp);
+                        updateGameInfo(`You defeated the ${currentEnemy.name}! Gained ${currentEnemy.gold} gold and ${currentEnemy.xp} XP`);
+                        currentEnemy = null;
+                        transitionMusic(false);
+                        drawMap();
+                        return;
+                    }
+                    
+                    // Enemy attack
+                    setTimeout(() => {
+                        // playSound('ATTACK');
+                        const enemyDamage = Math.max(1, currentEnemy.attack - player.defense);
+                        player.hp -= enemyDamage;
+                        
+                        setTimeout(() => {
+                            // playSound('PLAYER_HIT');
+                            updateGameInfo(`The ${currentEnemy.name} dealt ${enemyDamage} damage to you`);
+                            
+                            if (player.hp <= 0) {
+                                updateGameInfo('Game Over! You have been defeated.');
+                                currentEnemy = null;
+                                return;
+                            }
+                            drawBattleScene();
+                        }, 100);
+                    }, 500);
+                }, 100);
                 
-                const enemyDamage = Math.max(1, currentEnemy.attack - player.defense);
-                player.hp -= enemyDamage;
-                updateGameInfo(`The ${currentEnemy.name} dealt ${enemyDamage} damage to you`);
-                
-                if (player.hp <= 0) {
-                    updateGameInfo('Game Over! You have been defeated.');
-                    currentEnemy = null;
-                    return;
-                }
             } else if (action === 'run') {
+                playSound('RUN');
                 if (Math.random() < 0.5) {
                     updateGameInfo('You successfully ran away!');
                     currentEnemy = null;
+                    transitionMusic(false);
                     drawMap();
                     return;
-                } else {
-                    updateGameInfo('You failed to run away!');
-                    const enemyDamage = Math.max(1, currentEnemy.attack - player.defense);
-                    player.hp -= enemyDamage;
-                    updateGameInfo(`The ${currentEnemy.name} dealt ${enemyDamage} damage to you`);
                 }
+                // ... rest of run code ...
             }
-            
-            drawBattleScene();
         }
 
         function init() {
@@ -545,6 +578,50 @@ const canvas = document.getElementById('gameCanvas');
                 return Math.random() < 0.25 ? terrain : 'grass';
             }
             return terrain;
+        }
+
+        function transitionMusic(toBattle) {
+            const fadeOutDuration = 1000; // 1 second fade
+            const fadeInDuration = 1000;
+            const steps = 20;
+            const fadeOutStep = 1 / steps;
+            
+            const currentMusic = toBattle ? BACKGROUND_MUSIC : BATTLE_MUSIC;
+            const newMusic = toBattle ? BATTLE_MUSIC : BACKGROUND_MUSIC;
+            
+            // Fade out current music
+            let fadeOutInterval = setInterval(() => {
+                if (currentMusic.volume > 0) {
+                    currentMusic.volume = Math.max(0, currentMusic.volume - fadeOutStep);
+                } else {
+                    clearInterval(fadeOutInterval);
+                    currentMusic.pause();
+                    currentMusic.volume = 1;
+                    
+                    // Start new music
+                    newMusic.volume = 0;
+                    newMusic.play().then(() => {
+                        // Fade in new music
+                        let fadeInInterval = setInterval(() => {
+                            if (newMusic.volume < 1) {
+                                newMusic.volume = Math.min(1, newMusic.volume + fadeOutStep);
+                            } else {
+                                clearInterval(fadeInInterval);
+                            }
+                        }, fadeInDuration / steps);
+                    });
+                }
+            }, fadeOutDuration / steps);
+        }
+
+        function playSound(soundName) {
+            const sound = SOUNDS[soundName];
+            console.log(sound);
+            if (sound) {
+                // Clone and play the sound to allow overlapping
+                const soundClone = sound.cloneNode();
+                soundClone.play().catch(error => console.log('Sound play failed:', error));
+            }
         }
 
         init();
