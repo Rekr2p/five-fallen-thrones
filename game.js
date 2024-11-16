@@ -259,7 +259,7 @@ const canvas = document.getElementById('gameCanvas');
 
             gainXp(amount) {
                 this.xp += amount;
-                if (this.xp >= this.level * 10) {
+                if (this.xp >= this.level * 100) {
                     this.levelUp();
                 } else {
                     transitionMusic(false);
