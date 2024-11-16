@@ -72,7 +72,6 @@ const canvas = document.getElementById('gameCanvas');
                         transitionMusic(false);
                     }, 100);
                 };
-                console.log('hitting play');
                 levelUpSound.volume = 1;
                 levelUpSound.play()
                     .catch(error => console.log('Level up sound failed:', error));
@@ -1071,6 +1070,8 @@ const canvas = document.getElementById('gameCanvas');
                 this.xp = 0;
                 this.level = 1;
                 this.moveTimer = 0; // Add movement cooldown timer
+                this.mapOffsetX = 0;
+                this.mapOffsetY = 0;
             }
 
             move(dx, dy) {
@@ -1090,6 +1091,9 @@ const canvas = document.getElementById('gameCanvas');
                     this.x = newX;
                     this.y = newY;
                     // playSound('FOOTSTEP');
+
+                    this.mapOffsetX += dx;
+                    this.mapOffsetY += dy;
                     
                     // Generate new columns when moving right
                     if (dx > 0 && this.x >= gameMap[0].length - Math.floor(MAP_WIDTH/2)) {
@@ -1164,11 +1168,9 @@ const canvas = document.getElementById('gameCanvas');
                 this.name = name;
                 
                 // Calculate distance from center
-                const centerX = Math.floor(MAP_WIDTH / 2);
-                const centerY = Math.floor(MAP_HEIGHT / 2);
                 const distance = Math.sqrt(
-                    Math.pow(player.x - centerX, 2) + 
-                    Math.pow(player.y - centerY, 2)
+                    Math.pow(player.mapOffsetX, 2) + 
+                    Math.pow(player.mapOffsetY, 2)
                 );
                 
                 // Calculate level based on distance (every 75 steps = 1 level)
