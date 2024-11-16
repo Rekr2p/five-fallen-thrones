@@ -1070,9 +1070,17 @@ const canvas = document.getElementById('gameCanvas');
                 this.gold = 0;
                 this.xp = 0;
                 this.level = 1;
+                this.moveTimer = 0; // Add movement cooldown timer
             }
 
             move(dx, dy) {
+                // Check if enough time has passed since last move
+                const now = Date.now();
+                if (now - this.moveTimer < 150) { // 150ms cooldown
+                    return; // Exit if trying to move too soon
+                }
+                this.moveTimer = now; // Update the timer
+
                 const newX = this.x + dx;
                 const newY = this.y + dy;
                 
@@ -1154,11 +1162,30 @@ const canvas = document.getElementById('gameCanvas');
         class Enemy {
             constructor(name) {
                 this.name = name;
-                this.hp = Math.floor(Math.random() * 31) + 20;
-                this.attack = Math.floor(Math.random() * 11) + 5;
-                this.defense = Math.floor(Math.random() * 5) + 1;
-                this.gold = Math.floor(Math.random() * 21) + 10;
-                this.xp = Math.floor(Math.random() * 31) + 20;
+                
+                // Calculate distance from center
+                const centerX = Math.floor(MAP_WIDTH / 2);
+                const centerY = Math.floor(MAP_HEIGHT / 2);
+                const distance = Math.sqrt(
+                    Math.pow(player.x - centerX, 2) + 
+                    Math.pow(player.y - centerY, 2)
+                );
+                
+                // Calculate level based on distance (every 75 steps = 1 level)
+                this.level = Math.max(1, Math.floor(distance / 40) + 1);
+                
+                // Scale stats based on level
+                const levelMultiplier = 1 + (this.level - 1) * 0.3; // 30% increase per level
+                
+                // Base stats scaled by level
+                this.hp = Math.floor((Math.random() * 31 + 20) * levelMultiplier);
+                this.maxHp = this.hp;  // Store the initial HP as maxHp
+                this.attack = Math.floor((Math.random() * 11 + 5) * levelMultiplier);
+                this.defense = Math.floor((Math.random() * 5 + 1) * levelMultiplier);
+                
+                // Rewards scaled by level
+                this.gold = Math.floor((Math.random() * 21 + 10) * levelMultiplier);
+                this.xp = Math.floor((Math.random() * 31 + 20) * levelMultiplier);
             }
         }
 
@@ -1349,11 +1376,11 @@ const canvas = document.getElementById('gameCanvas');
             // Move HP text up to top of screen
             const topPadding = 30;
             ctx.fillText(`${player.name} HP: ${player.hp}/${player.maxHp}`, 50, topPadding);
-            ctx.fillText(`${currentEnemy.name} HP: ${currentEnemy.hp}`, canvas.width - 300, topPadding);
+            ctx.fillText(`${currentEnemy.name} - Lv ${currentEnemy.level} HP: ${currentEnemy.hp}`, canvas.width - 300, topPadding);
             
             // Draw HP bars just below the text
             drawHealthBar(50, topPadding + 10, player.hp, player.maxHp, 200);
-            drawHealthBar(canvas.width - 250, topPadding + 10, currentEnemy.hp, 100, 200);
+            drawHealthBar(canvas.width - 250, topPadding + 10, currentEnemy.hp, currentEnemy.maxHp, 200);
         }
 
         // Add this helper function for health bars
@@ -1495,6 +1522,13 @@ const canvas = document.getElementById('gameCanvas');
 
         function handleMove(direction) {
             if (currentEnemy) return;
+            
+            // Add debounce check here too for redundancy
+            const now = Date.now();
+            if (now - player.moveTimer < 150) { // 150ms cooldown
+                return;
+            }
+            
             switch (direction) {
                 case 'up': player.move(0, -1); break;
                 case 'down': player.move(0, 1); break;
