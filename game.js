@@ -583,28 +583,38 @@ const canvas = document.getElementById('gameCanvas');
                 terrainCounts[terrain] = (terrainCounts[terrain] || 0) + 1;
             });
             
-            // 85% chance to match the most common neighboring terrain
-            if (Math.random() < 0.85) {
-                let mostCommonTerrain = 'grass';
-                let highestCount = 0;
-                
-                for (const [terrain, count] of Object.entries(terrainCounts)) {
-                    if (count > highestCount) {
-                        highestCount = count;
-                        mostCommonTerrain = terrain;
-                    }
+            // Get the most common terrain and its ratio
+            const mostCommonTerrain = Object.entries(terrainCounts)
+                .reduce((a, b) => (a[1] > b[1] ? a : b))[0];
+            const mostCommonCount = terrainCounts[mostCommonTerrain] || 0;
+            const dominanceRatio = mostCommonCount / neighbors.length;
+            
+            // If terrain is extremely dominant (over 75%), force some variation
+            if (dominanceRatio > 0.75) {
+                // 70% chance to still match the dominant terrain
+                if (Math.random() < 0.7) {
+                    return mostCommonTerrain;
                 }
                 
-                return mostCommonTerrain;
+                // 30% chance to introduce variation
+                const basicTerrains = ['grass', 'hills', 'desert'].filter(t => t !== mostCommonTerrain);
+                return basicTerrains[Math.floor(Math.random() * basicTerrains.length)];
             }
             
-            // 15% chance for a new terrain type
-            const terrain = TERRAIN_TYPES[Math.floor(Math.random() * TERRAIN_TYPES.length)];
-            if (terrain === 'mountains' || terrain === 'water') {
-                // Reduce chance of generating mountains and water
-                return Math.random() < 0.25 ? terrain : 'grass';
+            // Normal terrain generation
+            if (Math.random() < 0.7) {  // 70% chance to match common neighbor
+                return mostCommonTerrain;
+            } else {  // 30% chance for variation
+                // Prefer adjacent terrain types (e.g., grass->hills->desert)
+                const terrainIndex = TERRAIN_TYPES.indexOf(mostCommonTerrain);
+                const variation = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+                const newIndex = (terrainIndex + variation + TERRAIN_TYPES.length) % TERRAIN_TYPES.length;
+                
+                // 90% chance to use adjacent terrain, 10% chance for completely random
+                return Math.random() < 0.9 ? 
+                    TERRAIN_TYPES[newIndex] : 
+                    TERRAIN_TYPES[Math.floor(Math.random() * TERRAIN_TYPES.length)];
             }
-            return terrain;
         }
 
         function transitionMusic(toBattle) {
