@@ -24,6 +24,21 @@ const canvas = document.getElementById('gameCanvas');
 
         let mapOffset = { x: 0, y: 0 }; // Track total map movement
 
+        const BACKGROUND_MUSIC = new Audio('assets/audio/Journey Through Realms(Travel).mp3');
+        console.log('Audio source:', BACKGROUND_MUSIC.src);
+        BACKGROUND_MUSIC.loop = true;
+
+        // Add this function to handle starting the music
+        function startBackgroundMusic() {
+            BACKGROUND_MUSIC.play().then(() => {
+                // Remove the event listeners once music starts
+                document.removeEventListener('click', startBackgroundMusic);
+                document.removeEventListener('keydown', startBackgroundMusic);
+            }).catch(error => {
+                console.log('Audio play failed:', error);
+            });
+        }
+
         class Sprite {
             constructor(color, secondaryColor) {
                 this.canvas = document.createElement('canvas');
@@ -334,12 +349,19 @@ const canvas = document.getElementById('gameCanvas');
 
         function init() {
             player = new Player();
-            // Initialize the game map with the starting area
             gameMap = generateMap();
             drawMap();
             updateGameInfo();
             setupTouchControls();
             setupKeyboardControls();
+            
+            // Try to autoplay first
+            BACKGROUND_MUSIC.play().catch(error => {
+                console.log('Audio autoplay failed:', error);
+                // If autoplay fails, listen for either mouse or keyboard interaction
+                document.addEventListener('click', startBackgroundMusic);
+                document.addEventListener('keydown', startBackgroundMusic);
+            });
         }
 
         function setupTouchControls() {
