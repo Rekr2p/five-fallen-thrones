@@ -12,9 +12,17 @@ const canvas = document.getElementById('gameCanvas');
             'Orc', 'Spider', 'Rat', 'Zombie', 'Imp'
         ];
 
+        const CHUNK_SIZE = 10; // Size of map chunks to generate at once
+        const RENDER_PADDING = 5; // Extra tiles to render beyond visible area
+        let mapChunks = new Map(); // Store generated chunks
+        let viewportX = 0; // Viewport top-left position
+        let viewportY = 0;
+
         let gameMap;
         let player;
         let currentEnemy = null;
+
+        let mapOffset = { x: 0, y: 0 }; // Track total map movement
 
         class Sprite {
             constructor(color, secondaryColor) {
@@ -72,9 +80,45 @@ const canvas = document.getElementById('gameCanvas');
             move(dx, dy) {
                 const newX = this.x + dx;
                 const newY = this.y + dy;
-                if (newX >= 0 && newX < MAP_WIDTH && newY >= 0 && newY < MAP_HEIGHT) {
+                
+                // Get the terrain at the new position directly from gameMap
+                const terrain = gameMap[newY - 1][newX];
+                
+                // Check if the new position is passable
+                if (terrain !== 'mountains' && terrain !== 'water') {
                     this.x = newX;
                     this.y = newY;
+                    
+                    // Generate new columns when moving right
+                    if (dx > 0 && this.x >= gameMap[0].length - Math.floor(MAP_WIDTH/2)) {
+                        const currentWidth = gameMap[0].length;
+                        for (let y = 0; y < gameMap.length; y++) {
+                            const neighbors = getNeighborsForNewTile(currentWidth - 1, y);
+                            gameMap[y].push(generateTerrainBasedOnNeighbors(neighbors));
+                        }
+                    }
+                    // Generate new columns when moving left
+                    else if (dx < 0 && this.x <= Math.floor(MAP_WIDTH/2)) {
+                        for (let y = 0; y < gameMap.length; y++) {
+                            gameMap[y].unshift(generateTerrainBasedOnNeighbors(getNeighborsForNewTile(-1, y)));
+                        }
+                        this.x++;
+                    }
+                    
+                    // Generate new rows when moving down
+                    if (dy > 0 && this.y >= gameMap.length - Math.floor(MAP_HEIGHT/2)) {
+                        const newRow = Array(gameMap[0].length).fill(null).map((_, x) => 
+                            generateTerrainBasedOnNeighbors(getNeighborsForNewTile(x, gameMap.length)));
+                        gameMap.push(newRow);
+                    }
+                    // Generate new rows when moving up
+                    else if (dy < 0 && this.y <= Math.floor(MAP_HEIGHT/2)) {
+                        const newRow = Array(gameMap[0].length).fill(null).map((_, x) => 
+                            generateTerrainBasedOnNeighbors(getNeighborsForNewTile(x, -1)));
+                        gameMap.unshift(newRow);
+                        this.y++;
+                    }
+                    
                     if (Math.random() < 0.1) {
                         startBattle();
                     }
@@ -116,21 +160,102 @@ const canvas = document.getElementById('gameCanvas');
         }
 
         function generateMap() {
-            return Array.from({ length: MAP_HEIGHT }, () =>
-                Array.from({ length: MAP_WIDTH }, () =>
-                    TERRAIN_TYPES[Math.floor(Math.random() * TERRAIN_TYPES.length)]
-                )
+            // Initialize empty map
+            let map = Array.from({ length: MAP_HEIGHT }, () =>
+                Array.from({ length: MAP_WIDTH }, () => 'grass')
             );
+            
+            // Helper function to count terrain percentage
+            const getTerrainPercentage = (terrain) => {
+                let count = 0;
+                map.forEach(row => row.forEach(tile => {
+                    if (tile === terrain) count++;
+                }));
+                return count / (MAP_WIDTH * MAP_HEIGHT);
+            };
+            
+            // Helper function to get neighboring tiles
+            const getNeighbors = (x, y) => {
+                const neighbors = [];
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        if (dx === 0 && dy === 0) continue;
+                        const newX = x + dx;
+                        const newY = y + dy;
+                        if (newX >= 0 && newX < MAP_WIDTH && newY >= 0 && newY < MAP_HEIGHT) {
+                            neighbors.push(map[newY][newX]);
+                        }
+                    }
+                }
+                return neighbors;
+            };
+            
+            // Generate terrain in chunks
+            for (let terrain of TERRAIN_TYPES) {
+                // Skip grass as it's the default
+                if (terrain === 'grass') continue;
+                
+                // Set maximum percentage for mountains and water combined
+                if ((terrain === 'mountains' || terrain === 'water') && 
+                    (getTerrainPercentage('mountains') + getTerrainPercentage('water')) >= 0.25) {
+                    continue;
+                }
+                
+                // Create several "seed" points for each terrain type
+                const numSeeds = Math.floor(Math.random() * 3) + 2;
+                for (let i = 0; i < numSeeds; i++) {
+                    let x = Math.floor(Math.random() * MAP_WIDTH);
+                    let y = Math.floor(Math.random() * MAP_HEIGHT);
+                    
+                    // Expand from seed point
+                    const expansionSize = Math.floor(Math.random() * 15) + 10;
+                    for (let j = 0; j < expansionSize; j++) {
+                        if (Math.random() < 0.7) { // 70% chance to expand near existing same terrain
+                            const neighbors = getNeighbors(x, y);
+                            if (neighbors.includes(terrain)) {
+                                map[y][x] = terrain;
+                            }
+                        }
+                        
+                        // Move to adjacent tile
+                        x += Math.floor(Math.random() * 3) - 1;
+                        y += Math.floor(Math.random() * 3) - 1;
+                        x = Math.max(0, Math.min(x, MAP_WIDTH - 1));
+                        y = Math.max(0, Math.min(y, MAP_HEIGHT - 1));
+                        
+                        map[y][x] = terrain;
+                    }
+                }
+            }
+            
+            return map;
         }
 
         function drawMap() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Calculate viewport offset to keep player centered
+            const offsetX = Math.floor(player.x - MAP_WIDTH/2);
+            const offsetY = Math.floor(player.y - MAP_HEIGHT/2);
+            
+            // Draw visible portion of the map
             for (let y = 0; y < MAP_HEIGHT; y++) {
                 for (let x = 0; x < MAP_WIDTH; x++) {
-                    const terrain = gameMap[y][x];
-                    ctx.drawImage(sprites[terrain].canvas, x * TILE_SIZE, y * TILE_SIZE);
+                    const mapX = x + offsetX;
+                    const mapY = y + offsetY;
+                    const terrain = getTileAt(mapX, mapY);
+                    
+                    // Ensure we have a valid sprite before drawing
+                    if (sprites[terrain] && sprites[terrain].canvas) {
+                        ctx.drawImage(sprites[terrain].canvas, x * TILE_SIZE, y * TILE_SIZE);
+                    }
                 }
             }
-            ctx.drawImage(sprites.hero.canvas, player.x * TILE_SIZE, player.y * TILE_SIZE);
+            
+            // Draw player in center
+            ctx.drawImage(sprites.hero.canvas, 
+                Math.floor(MAP_WIDTH/2) * TILE_SIZE, 
+                Math.floor(MAP_HEIGHT/2) * TILE_SIZE);
         }
 
         function updateGameInfo(message) {
@@ -208,8 +333,9 @@ const canvas = document.getElementById('gameCanvas');
         }
 
         function init() {
-            gameMap = generateMap();
             player = new Player();
+            // Initialize the game map with the starting area
+            gameMap = generateMap();
             drawMap();
             updateGameInfo();
             setupTouchControls();
@@ -282,6 +408,121 @@ const canvas = document.getElementById('gameCanvas');
                 }
                 updateGameInfo();
             });
+        }
+
+        function getChunkKey(chunkX, chunkY) {
+            return `${chunkX},${chunkY}`;
+        }
+
+        function generateChunk(chunkX, chunkY) {
+            const chunk = Array.from({ length: CHUNK_SIZE }, () =>
+                Array.from({ length: CHUNK_SIZE }, () => 'grass')
+            );
+            
+            // Use existing terrain generation logic, but scaled to chunk size
+            for (let terrain of TERRAIN_TYPES) {
+                if (terrain === 'grass') continue;
+                
+                if ((terrain === 'mountains' || terrain === 'water')) {
+                    const numSeeds = Math.floor(Math.random() * 2) + 1;
+                    for (let i = 0; i < numSeeds; i++) {
+                        let x = Math.floor(Math.random() * CHUNK_SIZE);
+                        let y = Math.floor(Math.random() * CHUNK_SIZE);
+                        
+                        const expansionSize = Math.floor(Math.random() * 8) + 4;
+                        for (let j = 0; j < expansionSize; j++) {
+                            chunk[y][x] = terrain;
+                            x += Math.floor(Math.random() * 3) - 1;
+                            y += Math.floor(Math.random() * 3) - 1;
+                            x = Math.max(0, Math.min(x, CHUNK_SIZE - 1));
+                            y = Math.max(0, Math.min(y, CHUNK_SIZE - 1));
+                        }
+                    }
+                }
+            }
+            
+            return chunk;
+        }
+
+        function generateNewChunks() {
+            // Calculate which chunks should be visible
+            const minChunkX = Math.floor(viewportX / CHUNK_SIZE) - 1;
+            const maxChunkX = Math.ceil((viewportX + MAP_WIDTH) / CHUNK_SIZE) + 1;
+            const minChunkY = Math.floor(viewportY / CHUNK_SIZE) - 1;
+            const maxChunkY = Math.ceil((viewportY + MAP_HEIGHT) / CHUNK_SIZE) + 1;
+            
+            // Generate missing chunks
+            for (let chunkY = minChunkY; chunkY <= maxChunkY; chunkY++) {
+                for (let chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+                    const key = getChunkKey(chunkX, chunkY);
+                    if (!mapChunks.has(key)) {
+                        mapChunks.set(key, generateChunk(chunkX, chunkY));
+                    }
+                }
+            }
+        }
+
+        function getTileAt(x, y) {
+            // Ensure we have valid gameMap data
+            if (!gameMap || !gameMap.length || !gameMap[0]) {
+                return 'grass';
+            }
+            
+            // Ensure coordinates are within bounds
+            if (y >= 0 && y < gameMap.length && x >= 0 && x < gameMap[0].length) {
+                const terrain = gameMap[y][x];
+                // Verify we got a valid terrain type
+                return TERRAIN_TYPES.includes(terrain) ? terrain : 'grass';
+            }
+            return 'grass';
+        }
+
+        function getNeighborsForNewTile(x, y) {
+            const neighbors = [];
+            // Check a larger area around the tile (2 tiles in each direction)
+            for (let dy = -2; dy <= 2; dy++) {
+                for (let dx = -2; dx <= 2; dx++) {
+                    const newX = x + dx;
+                    const newY = y + dy;
+                    if (newY >= 0 && newY < gameMap.length && newX >= 0 && newX < gameMap[0].length) {
+                        neighbors.push(gameMap[newY][newX]);
+                    }
+                }
+            }
+            return neighbors;
+        }
+
+        function generateTerrainBasedOnNeighbors(neighbors) {
+            if (neighbors.length === 0) return 'grass';
+            
+            // Count frequency of each terrain type in neighbors
+            const terrainCounts = {};
+            neighbors.forEach(terrain => {
+                terrainCounts[terrain] = (terrainCounts[terrain] || 0) + 1;
+            });
+            
+            // 85% chance to match the most common neighboring terrain
+            if (Math.random() < 0.85) {
+                let mostCommonTerrain = 'grass';
+                let highestCount = 0;
+                
+                for (const [terrain, count] of Object.entries(terrainCounts)) {
+                    if (count > highestCount) {
+                        highestCount = count;
+                        mostCommonTerrain = terrain;
+                    }
+                }
+                
+                return mostCommonTerrain;
+            }
+            
+            // 15% chance for a new terrain type
+            const terrain = TERRAIN_TYPES[Math.floor(Math.random() * TERRAIN_TYPES.length)];
+            if (terrain === 'mountains' || terrain === 'water') {
+                // Reduce chance of generating mountains and water
+                return Math.random() < 0.25 ? terrain : 'grass';
+            }
+            return terrain;
         }
 
         init();
